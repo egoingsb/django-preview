@@ -2,11 +2,15 @@ from django.shortcuts import render, redirect
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 
-nextId = 3
-topics = [
-    {'id':1, 'title':'html', 'body':'html is ..'},
-    {'id':2, 'title':'css', 'body':'css is ..'},
-]
+topics = { 
+    {1: {'id':1, 'title':'html', 'body':'html is ..'}},
+    {2: {'id':2, 'title':'css', 'body':'css is ..'}},
+}
+
+def nextId():
+    return len(topics) + 1
+    #혹은 삭제될것을 감안한다면( 이경우 아이디가ㅏ 중복될 수 있으므로 )
+    return max(topic.keys()) + 1
 
 def htmlTemplate(article, updateDelete=''):
     nav = ''
@@ -38,9 +42,7 @@ def index(request):
     return HttpResponse(htmlTemplate(article))
 
 def getTopicById(id):
-    for topic in topics:
-        if topic['id'] == id:
-            return topic
+    return topic[id]
 
 def read(request, id):
     topic = getTopicById(id)
@@ -60,16 +62,16 @@ def create(request):
         '''
         return HttpResponse(htmlTemplate(article, updateDeleteTempalte(id)))
     else :
-        global topics, nextId
+        global topics
         title = request.POST['title']
         body = request.POST['body']
-        topics.append({
-            'id':nextId,
+        nid = nextId()
+        topics[nid] = {
+            'id':nid,
             'title':title,
             'body':body
-        })
-        newURL = f'/read/{nextId}'
-        nextId = nextId + 1
+        }
+        newURL = f'/read/{nid}'
         return redirect(newURL)
 
 @csrf_exempt
@@ -87,12 +89,8 @@ def update(request, id):
         return HttpResponse(htmlTemplate(article, updateDeleteTempalte(id)))
     else :
         global topics, nextId
-        title = request.POST['title']
-        body = request.POST['body']
-        for index, topic in enumerate(topics):
-            if topic['id'] == id:
-                topics[index]['title'] = title
-                topics[index]['body'] = body
+        topics[id]['title'] = request.POST['title']
+        topics[id]['body'] = request.POST['body']
         newURL = f'/read/{id}'
         return redirect(newURL)
 
@@ -100,9 +98,5 @@ def update(request, id):
 def delete(request, id):
     if request.method == 'POST':
         global topics
-        newTopics = []
-        for topic in topics: 
-            if topic['id'] != id:
-                newTopics.append(topic)
-        topics = newTopics
+        del topics[id]
         return redirect('/')
